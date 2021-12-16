@@ -1,4 +1,4 @@
-import json
+from os import getenv
 
 from marshmallow import Schema, fields
 from flask import jsonify, request
@@ -10,7 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 server = Flask(__name__)
 api = Api(server)
 
-server.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:jnalis@localhost/simple-formm-4887'
+server.config['SQLALCHEMY_DATABASE_URI'] = getenv('DATABASE_URL')
 server.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(server)
