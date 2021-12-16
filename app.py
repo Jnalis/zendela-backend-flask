@@ -1,15 +1,22 @@
-from flask import Flask, render_template, request, flash
+import json
+
+from marshmallow import Schema, fields
+from flask import jsonify, request
+from flask_restful import Resource
+from flask import Flask
+from flask_restful import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:jnalis@localhost/simple-formm-4887'
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.secret_key = 'secret string'
+server = Flask(__name__)
+api = Api(server)
 
-db = SQLAlchemy(app)
+server.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:jnalis@localhost/simple-formm-4887'
+server.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(server)
 
 
-class simpleForm(db.Model):
+class Employee(db.Model):
     fname = db.Column(db.Text)
     mname = db.Column(db.Text)
     lname = db.Column(db.Text)
@@ -25,25 +32,65 @@ class simpleForm(db.Model):
         self.email = email
         self.address = address
 
+    def __repr__(self):
+        return self
 
-@app.route('/', methods=['POST', 'GET'])
-def index():
-    if request.method == 'POST':
-        fname = request.form['fname']
-        mname = request.form['mname']
-        lname = request.form['lname']
-        number = request.form['number']
-        email = request.form['email']
-        address = request.form['address']
-        insert = simpleForm(fname, mname, lname, number, email, address)
+
+class RegisterSchema(Schema):
+    """
+    endpoint: /auth/register
+    parameters:
+        fname: string,
+        mname: string,
+        lname: string,
+        number: string,
+        address: string,
+        email: string
+    """
+    fname = fields.Str(required=True)
+    mname = fields.Str(required=True)
+    lname = fields.Str(required=True)
+    number = fields.Str(required=True)
+    address = fields.Str(required=True)
+    email = fields.Email(required=True)
+
+
+class HelloWorld(Resource):
+    def get(self):
+        return {'hello': 'world'}
+
+
+class Register(Resource):
+    def post(self):
+        req_body = request.get_json()
+
+        # validate the request body
+        errors = RegisterSchema().validate(req_body)
+
+        if errors:
+            return jsonify({"status": 400, "errors": errors})
+        print(req_body)
+        insert = Employee(req_body["fname"], req_body["mname"], req_body["lname"], req_body["number"],
+                          req_body["email"], req_body["address"])
         db.session.add(insert)
         db.session.commit()
-        msg = 'Successfully registered'
-        return render_template('index.html', msg=msg)
-    else:
-        return render_template('index.html')
+
+        return jsonify({"status": 200, "msg": "Successfully registered"})
+
+
+# register the resources
+api.add_resource(Register, '/auth/register')
+api.add_resource(HelloWorld, '/')
+
+
+@server.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+    return response
 
 
 if __name__ == '__main__':
     db.create_all()
-    app.run()
+    server.run(debug=True, port=5000)
