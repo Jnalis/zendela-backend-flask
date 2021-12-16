@@ -7,13 +7,13 @@ from flask import Flask
 from flask_restful import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 
-server = Flask(__name__)
-api = Api(server)
+app = Flask(__name__)
+api = Api(app)
 
-server.config['SQLALCHEMY_DATABASE_URI'] = getenv('DATABASE_URL')
-server.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = getenv('DATABASE_URL')
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-db = SQLAlchemy(server)
+db = SQLAlchemy(app)
 
 
 class Employee(db.Model):
@@ -83,7 +83,7 @@ api.add_resource(Register, '/auth/register')
 api.add_resource(HelloWorld, '/')
 
 
-@server.after_request
+@app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
@@ -93,4 +93,4 @@ def after_request(response):
 
 if __name__ == '__main__':
     db.create_all()
-    server.run(debug=True, port=5000)
+    app.run(debug=True, port=5000)
